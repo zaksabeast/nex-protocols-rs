@@ -4,3 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+nex-rs = {git = "https://github.com/zaksabeast/nex-rs.git", rev = "6ea35ea" }
+no_std_io = { git = "https://github.com/zaksabeast/no_std_io.git", rev = "ec8bf48" }
