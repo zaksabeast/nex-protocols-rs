@@ -45,12 +45,12 @@ impl StructureInterface for AuthenticationInfo {
 }
 
 pub trait AuthenticationProtocol {
-    fn login(&self, _: &mut ClientConnection, _: u32, _: String) -> Result<(), &'static str> { Ok(()) }
-    fn login_ex(&self, _: &mut ClientConnection, _: u32, _: String, _: Option<AuthenticationInfo>) -> Result<(), &'static str> { Ok(()) }
-    fn request_ticket(&self, _: &mut ClientConnection, _: u32, _: u32, _: u32) -> Result<(), &'static str> { Ok(()) }
-    fn get_pid(&self, _: &mut ClientConnection, _: u32, _: String) -> Result<(), &'static str> { Ok(()) }
-    fn get_name(&self, _: &mut ClientConnection, _: u32, _: u32) -> Result<(), &'static str> { Ok(()) }
-    fn login_with_param(&self, _: &mut ClientConnection, _: u32, _: u32) -> Result<(), &'static str> { Ok(()) }
+    fn login(&self, _client: &mut ClientConnection, _call_id: u32, _username: String) -> Result<(), &'static str> { Ok(()) }
+    fn login_ex(&self, _client: &mut ClientConnection, _call_id: u32, _username: String, _authentication_info: Option<AuthenticationInfo>) -> Result<(), &'static str> { Ok(()) }
+    fn request_ticket(&self, _client: &mut ClientConnection, _call_id: u32, _user_pid: u32, _server_pid: u32) -> Result<(), &'static str> { Ok(()) }
+    fn get_pid(&self, _client: &mut ClientConnection, _call_id: u32, _username: String) -> Result<(), &'static str> { Ok(()) }
+    fn get_name(&self, _client: &mut ClientConnection, _call_id: u32, _user_pid: u32) -> Result<(), &'static str> { Ok(()) }
+    fn login_with_param(&self, _: &mut ClientConnection, _call_id: u32) -> Result<(), &'static str> { Ok(()) }
 
     fn handle_login(&self, client: &mut ClientConnection, packet: &PacketV1) -> Result<(), &'static str> {
         let request = packet.get_rmc_request();
