@@ -9,7 +9,7 @@ pub const AUTHENTICATION_PROTOCOL_ID: u8 = 0xA;
 
 #[derive(Debug, Clone, Copy, PartialEq, TryFromPrimitive, IntoPrimitive)]
 #[repr(u32)]
-pub enum AuthenticationMethod {
+pub enum TicketGrantingMethod {
     Login = 0x1,
     LoginEx = 0x2,
     RequestTicket = 0x3,
@@ -19,35 +19,35 @@ pub enum AuthenticationMethod {
 }
 
 #[derive(Default)]
-pub struct AuthenticationInfo {
+pub struct TicketGrantingInfo {
     token: String,
     ngs_version: u32,
     token_type: u8,
     server_version: u32,
 }
 
-impl AuthenticationInfo {
+impl TicketGrantingInfo {
     pub fn new() -> Self {
         Self::default()
     }
 }
 
-impl StructureInterface for AuthenticationInfo {
+impl StructureInterface for TicketGrantingInfo {
     fn extract_from_stream<T: Reader>(stream: &mut StreamIn<T>) -> Result<Self, &'static str> {
         let token = stream.read_string();
         if stream.get_slice()[stream.get_index()..].len() < 9 {
-            return Err("[AuthenticationInfo::extract_from_stream] Data size too small");
+            return Err("[TicketGrantingInfo::extract_from_stream] Data size too small");
         }
 
         let token = token;
         let token_type = stream
             .read_stream_le()
-            .map_err(|_| "[AuthenticationInfo::extract_from_stream] Failed to read token type")?;
+            .map_err(|_| "[TicketGrantingInfo::extract_from_stream] Failed to read token type")?;
         let ngs_version = stream
             .read_stream_le()
-            .map_err(|_| "[AuthenticationInfo::extract_from_stream] Failed to read NGS version")?;
+            .map_err(|_| "[TicketGrantingInfo::extract_from_stream] Failed to read NGS version")?;
         let server_version = stream.read_stream_le().map_err(|_| {
-            "[AuthenticationInfo::extract_from_stream] Failed to read server version"
+            "[TicketGrantingInfo::extract_from_stream] Failed to read server version"
         })?;
 
         Ok(Self {
@@ -63,7 +63,7 @@ impl StructureInterface for AuthenticationInfo {
     }
 }
 
-pub trait AuthenticationProtocol {
+pub trait TicketGrantingProtocol {
     fn login(
         &self,
         client: &mut ClientConnection,
@@ -75,7 +75,7 @@ pub trait AuthenticationProtocol {
         client: &mut ClientConnection,
         call_id: u32,
         username: String,
-        authentication_info: Option<AuthenticationInfo>,
+        ticket_granting_info: Option<TicketGrantingInfo>,
     ) -> Result<(), &'static str>;
     fn request_ticket(
         &self,
@@ -141,13 +141,13 @@ pub trait AuthenticationProtocol {
             return Err("Failed to read data holder name");
         }
 
-        if data_holder_name.trim() != "AuthenticationInfo" {
-            return Err("[AuthenticationProtocol::login_ex] Data holder name does not match");
+        if data_holder_name.trim() != "TicketGrantingInfo" {
+            return Err("[TicketGrantingProtocol::login_ex] Data holder name does not match");
         }
 
         let _: u32 = parameters_stream
             .read_stream_le()
-            .map_err(|_| "[AuthenticationProtocol::login_ex] Failed to skip misc item")?;
+            .map_err(|_| "[TicketGrantingProtocol::login_ex] Failed to skip misc item")?;
 
         let data_holder_content = parameters_stream.read_buffer();
 
@@ -157,9 +157,15 @@ pub trait AuthenticationProtocol {
 
         let mut data_holder_content_stream = StreamIn::new(data_holder_content);
 
-        let authentication_info = data_holder_content_stream.read_struct::<AuthenticationInfo>()?;
+        let ticket_granting_info =
+            data_holder_content_stream.read_struct::<TicketGrantingInfo>()?;
 
-        self.login_ex(client, request.call_id, username, Some(authentication_info))
+        self.login_ex(
+            client,
+            request.call_id,
+            username,
+            Some(ticket_granting_info),
+        )
     }
 
     fn handle_request_ticket(
@@ -170,17 +176,17 @@ pub trait AuthenticationProtocol {
         let request = packet.get_rmc_request();
         let parameters = &request.parameters;
         if parameters.len() != 8 {
-            return Err("[AuthenticationProtocol::request_ticket] Parameters length not 8");
+            return Err("[TicketGrantingProtocol::request_ticket] Parameters length not 8");
         }
 
         let mut parameters_stream = StreamIn::new(parameters.clone());
 
         let user_pid: u32 = parameters_stream
             .read_stream_le()
-            .map_err(|_| "[AuthenticationProtocol::request_ticket] Failed to read user pid")?;
+            .map_err(|_| "[TicketGrantingProtocol::request_ticket] Failed to read user pid")?;
         let server_pid: u32 = parameters_stream
             .read_stream_le()
-            .map_err(|_| "[AuthenticationProtocol::request_ticket] Failed to read server pid")?;
+            .map_err(|_| "[TicketGrantingProtocol::request_ticket] Failed to read server pid")?;
 
         self.request_ticket(client, request.call_id, user_pid, server_pid)
     }
@@ -195,7 +201,7 @@ pub trait AuthenticationProtocol {
         let username = parameters_stream.read_string();
 
         if username.trim() != String::default() {
-            return Err("[AuthenticationProtocol::get_pid] Failed to read username");
+            return Err("[TicketGrantingProtocol::get_pid] Failed to read username");
         }
 
         self.get_pid(client, request.call_id, username)
@@ -209,14 +215,14 @@ pub trait AuthenticationProtocol {
         let request = packet.get_rmc_request();
 
         if request.parameters.len() != 4 {
-            return Err("[AuthenticationProtocol::get_name] Parameters length not 4");
+            return Err("[TicketGrantingProtocol::get_name] Parameters length not 4");
         }
 
         let mut parameters_stream = StreamIn::new(request.parameters.clone());
 
         let user_pid: u32 = parameters_stream
             .read_stream_le()
-            .map_err(|_| "[AuthenticationProtocol::get_name] Failed to read user PID")?;
+            .map_err(|_| "[TicketGrantingProtocol::get_name] Failed to read user PID")?;
 
         self.get_name(client, request.call_id, user_pid)
     }

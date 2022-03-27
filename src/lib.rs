@@ -3,4 +3,4 @@
 // Temporarily allow unused variables while building
 #![allow(unused_variables)]
 
-pub mod authentication;
+pub mod ticket_granting;
