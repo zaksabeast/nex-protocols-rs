@@ -19,9 +19,6 @@ pub enum AuthenticationMethod {
 }
 
 #[derive(Default)]
-pub struct NintendoLoginData(String);
-
-#[derive(Default)]
 pub struct AuthenticationInfo {
     token: String,
     ngs_version: u32,
