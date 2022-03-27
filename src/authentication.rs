@@ -1,7 +1,7 @@
 use nex_rs::client::ClientConnection;
 use nex_rs::nex_types::StructureInterface;
 use nex_rs::packet::{Packet, PacketV1};
-use nex_rs::stream::StreamIn;
+use nex_rs::stream::{StreamIn, StreamOut};
 use no_std_io::{Cursor, Reader, StreamReader};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
@@ -33,27 +33,33 @@ impl AuthenticationInfo {
 }
 
 impl StructureInterface for AuthenticationInfo {
-    fn extract_from_stream<T: Reader>(
-        &mut self,
-        stream: &mut StreamIn<T>,
-    ) -> Result<(), &'static str> {
+    fn extract_from_stream<T: Reader>(stream: &mut StreamIn<T>) -> Result<Self, &'static str> {
         let token = stream.read_string();
         if stream.get_slice()[stream.get_index()..].len() < 9 {
             return Err("[AuthenticationInfo::extract_from_stream] Data size too small");
         }
 
-        self.token = token;
-        self.token_type = stream
+        let token = token;
+        let token_type = stream
             .read_stream_le()
             .map_err(|_| "[AuthenticationInfo::extract_from_stream] Failed to read token type")?;
-        self.ngs_version = stream
+        let ngs_version = stream
             .read_stream_le()
             .map_err(|_| "[AuthenticationInfo::extract_from_stream] Failed to read NGS version")?;
-        self.server_version = stream.read_stream_le().map_err(|_| {
+        let server_version = stream.read_stream_le().map_err(|_| {
             "[AuthenticationInfo::extract_from_stream] Failed to read server version"
         })?;
 
-        Ok(())
+        Ok(Self {
+            token,
+            token_type,
+            ngs_version,
+            server_version,
+        })
+    }
+
+    fn bytes(&self, _stream: &mut StreamOut) -> Result<(), &'static str> {
+        unimplemented!()
     }
 }
 
@@ -151,8 +157,7 @@ pub trait AuthenticationProtocol {
 
         let mut data_holder_content_stream = StreamIn::new(data_holder_content);
 
-        let mut authentication_info = AuthenticationInfo::default();
-        authentication_info.extract_from_stream(&mut data_holder_content_stream)?;
+        let authentication_info = data_holder_content_stream.read_struct::<AuthenticationInfo>()?;
 
         self.login_ex(client, request.call_id, username, Some(authentication_info))
     }
