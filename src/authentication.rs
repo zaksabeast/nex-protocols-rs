@@ -3,10 +3,20 @@ use nex_rs::nex_types::StructureInterface;
 use nex_rs::packet::{Packet, PacketV1};
 use nex_rs::stream::{StreamIn};
 use no_std_io::{Cursor, Reader, StreamReader};
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 pub const AUTHENTICATION_PROTOCOL_ID: u8 = 0xA;
-pub const AUTHENTICATION_METHOD_LOGIN: u32 = 0x1;
-pub const AUTHENTICATION_METHOD_LOGIN_EX: u32 = 0x2;
+
+#[derive(Debug, Clone, Copy, PartialEq, TryFromPrimitive, IntoPrimitive)]
+#[repr(u32)]
+pub enum AuthenticationMethod {
+    Login = 0x1,
+    LoginEx = 0x2,
+    RequestTicket = 0x3,
+    GetPID = 0x4,
+    GetName = 0x5,
+    LoginWithParam = 0x6,
+}
 
 #[derive(Default)]
 pub struct NintendoLoginData(String);
