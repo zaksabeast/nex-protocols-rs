@@ -43,7 +43,7 @@ impl StructureInterface for AuthenticationInfo {
         }
 
         self.token = token;
-        self.token_type = stream.read_stream()
+        self.token_type = stream.read_stream_le()
             .map_err(|_| "[AuthenticationInfo::extract_from_stream] Failed to read token type")?;
         self.ngs_version = stream.read_stream_le()
             .map_err(|_| "[AuthenticationInfo::extract_from_stream] Failed to read NGS version")?;
