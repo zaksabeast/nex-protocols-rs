@@ -167,5 +167,5 @@ pub struct AttractionStatus {
 pub struct SimpleMatchmakeHostInfo {
     pid: u32,
     session_key: NexBuffer,
-    station_urls: NexList<NexString>
+    station_urls: NexList<NexString>,
 }
