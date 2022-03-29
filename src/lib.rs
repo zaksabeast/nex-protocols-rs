@@ -4,3 +4,4 @@
 #![allow(unused_variables)]
 
 pub mod ticket_granting;
+pub mod matchmake_extension;
