@@ -1,8 +1,7 @@
 use nex_rs::client::ClientConnection;
-use nex_rs::nex_types::StructureInterface;
+use nex_rs::nex_types::{NexBuffer, NexString};
 use nex_rs::packet::{Packet, PacketV1};
-use nex_rs::stream::{StreamIn, StreamOut};
-use no_std_io::{Cursor, Reader, StreamReader};
+use no_std_io::{EndianRead, EndianWrite, StreamContainer, StreamReader};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 pub const AUTHENTICATION_PROTOCOL_ID: u8 = 0xA;
@@ -18,9 +17,9 @@ pub enum TicketGrantingMethod {
     LoginWithParam = 0x6,
 }
 
-#[derive(Default)]
+#[derive(Default, EndianRead, EndianWrite)]
 pub struct TicketGrantingInfo {
-    token: String,
+    token: NexString,
     ngs_version: u32,
     token_type: u8,
     server_version: u32,
@@ -29,37 +28,6 @@ pub struct TicketGrantingInfo {
 impl TicketGrantingInfo {
     pub fn new() -> Self {
         Self::default()
-    }
-}
-
-impl StructureInterface for TicketGrantingInfo {
-    fn extract_from_stream<T: Reader>(stream: &mut StreamIn<T>) -> Result<Self, &'static str> {
-        let token = stream.read_string();
-        if stream.get_slice()[stream.get_index()..].len() < 9 {
-            return Err("[TicketGrantingInfo::extract_from_stream] Data size too small");
-        }
-
-        let token = token;
-        let token_type = stream
-            .read_stream_le()
-            .map_err(|_| "[TicketGrantingInfo::extract_from_stream] Failed to read token type")?;
-        let ngs_version = stream
-            .read_stream_le()
-            .map_err(|_| "[TicketGrantingInfo::extract_from_stream] Failed to read NGS version")?;
-        let server_version = stream.read_stream_le().map_err(|_| {
-            "[TicketGrantingInfo::extract_from_stream] Failed to read server version"
-        })?;
-
-        Ok(Self {
-            token,
-            token_type,
-            ngs_version,
-            server_version,
-        })
-    }
-
-    fn bytes(&self, _stream: &mut StreamOut) -> Result<(), &'static str> {
-        unimplemented!()
     }
 }
 
@@ -108,10 +76,13 @@ pub trait TicketGrantingProtocol {
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
         let request = packet.get_rmc_request();
+        let parameters = request.parameters.as_slice();
+        let mut parameters_stream = StreamContainer::new(parameters);
 
-        let mut parameters_stream = StreamIn::new(request.parameters.clone());
-
-        let username = parameters_stream.read_string();
+        let username: String = parameters_stream
+            .read_stream_le::<NexString>()
+            .map_err(|_| "Can not read username")?
+            .into();
 
         if username.trim() == String::default() {
             return Err("Failed to read username");
@@ -126,16 +97,22 @@ pub trait TicketGrantingProtocol {
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
         let request = packet.get_rmc_request();
+        let parameters = request.parameters.as_slice();
+        let mut parameters_stream = StreamContainer::new(parameters);
 
-        let mut parameters_stream = StreamIn::new(request.parameters.clone());
-
-        let username = parameters_stream.read_string();
+        let username: String = parameters_stream
+            .read_stream_le::<NexString>()
+            .map_err(|_| "Can not read username")?
+            .into();
 
         if username.trim() != String::default() {
             return Err("Failed to read username");
         }
 
-        let data_holder_name = parameters_stream.read_string();
+        let data_holder_name: String = parameters_stream
+            .read_stream_le::<NexString>()
+            .map_err(|_| "Can not read username")?
+            .into();
 
         if data_holder_name.trim() == String::default() {
             return Err("Failed to read data holder name");
@@ -149,16 +126,20 @@ pub trait TicketGrantingProtocol {
             .read_stream_le()
             .map_err(|_| "[TicketGrantingProtocol::login_ex] Failed to skip misc item")?;
 
-        let data_holder_content = parameters_stream.read_buffer();
+        let data_holder_content: Vec<u8> = parameters_stream
+            .read_stream_le::<NexBuffer>()
+            .map_err(|_| "Cannot read NexBuffer")?
+            .into();
 
         if data_holder_content.is_empty() {
             return Err("Data holder content is empty");
         }
 
-        let mut data_holder_content_stream = StreamIn::new(data_holder_content);
+        let mut data_holder_content_stream = StreamContainer::new(data_holder_content);
 
-        let ticket_granting_info =
-            data_holder_content_stream.read_struct::<TicketGrantingInfo>()?;
+        let ticket_granting_info = data_holder_content_stream
+            .read_stream_le::<TicketGrantingInfo>()
+            .map_err(|_| "Could not read TicketGrantingInfo")?;
 
         self.login_ex(
             client,
@@ -174,12 +155,12 @@ pub trait TicketGrantingProtocol {
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
         let request = packet.get_rmc_request();
-        let parameters = &request.parameters;
+        let parameters = request.parameters.as_slice();
         if parameters.len() != 8 {
             return Err("[TicketGrantingProtocol::request_ticket] Parameters length not 8");
         }
 
-        let mut parameters_stream = StreamIn::new(parameters.clone());
+        let mut parameters_stream = StreamContainer::new(parameters);
 
         let user_pid: u32 = parameters_stream
             .read_stream_le()
@@ -197,8 +178,12 @@ pub trait TicketGrantingProtocol {
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
         let request = packet.get_rmc_request();
-        let mut parameters_stream = StreamIn::new(request.parameters.clone());
-        let username = parameters_stream.read_string();
+        let parameters = request.parameters.as_slice();
+        let mut parameters_stream = StreamContainer::new(parameters);
+        let username: String = parameters_stream
+            .read_stream_le::<NexString>()
+            .map_err(|_| "Can not read username")?
+            .into();
 
         if username.trim() != String::default() {
             return Err("[TicketGrantingProtocol::get_pid] Failed to read username");
@@ -213,12 +198,13 @@ pub trait TicketGrantingProtocol {
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
         let request = packet.get_rmc_request();
+        let parameters = request.parameters.as_slice();
 
-        if request.parameters.len() != 4 {
+        if parameters.len() != 4 {
             return Err("[TicketGrantingProtocol::get_name] Parameters length not 4");
         }
 
-        let mut parameters_stream = StreamIn::new(request.parameters.clone());
+        let mut parameters_stream = StreamContainer::new(parameters);
 
         let user_pid: u32 = parameters_stream
             .read_stream_le()
