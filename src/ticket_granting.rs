@@ -1,5 +1,5 @@
 use nex_rs::client::ClientConnection;
-use nex_rs::nex_types::{NexBuffer, NexString};
+use nex_rs::nex_types::{DataHolder, NexString};
 use nex_rs::packet::{Packet, PacketV1};
 use no_std_io::{EndianRead, EndianWrite, StreamContainer, StreamReader};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
@@ -18,14 +18,20 @@ pub enum TicketGrantingMethod {
 }
 
 #[derive(Default, EndianRead, EndianWrite)]
-pub struct TicketGrantingInfo {
+pub struct AuthenticationInfo {
     token: NexString,
     ngs_version: u32,
     token_type: u8,
     server_version: u32,
 }
 
-impl TicketGrantingInfo {
+impl From<DataHolder<AuthenticationInfo>> for AuthenticationInfo {
+    fn from(dh: DataHolder<AuthenticationInfo>) -> Self {
+        dh.into()
+    }
+}
+
+impl AuthenticationInfo {
     pub fn new() -> Self {
         Self::default()
     }
@@ -43,7 +49,7 @@ pub trait TicketGrantingProtocol {
         client: &mut ClientConnection,
         call_id: u32,
         username: String,
-        ticket_granting_info: Option<TicketGrantingInfo>,
+        ticket_granting_info: Option<AuthenticationInfo>,
     ) -> Result<(), &'static str>;
     fn request_ticket(
         &self,
@@ -109,44 +115,17 @@ pub trait TicketGrantingProtocol {
             return Err("Failed to read username");
         }
 
-        let data_holder_name: String = parameters_stream
-            .read_stream_le::<NexString>()
-            .map_err(|_| "Can not read username")?
-            .into();
+        let data_holder = parameters_stream
+            .read_stream_le::<DataHolder<AuthenticationInfo>>()
+            .map_err(|_| "Can not read data holder")?;
 
-        if data_holder_name.trim() == String::default() {
-            return Err("Failed to read data holder name");
+        let data_holder_name: String = data_holder.get_name().into();
+
+        if data_holder_name != "AuthenticationInfo" {
+            return Err("Data holder name mismatch");
         }
 
-        if data_holder_name.trim() != "TicketGrantingInfo" {
-            return Err("[TicketGrantingProtocol::login_ex] Data holder name does not match");
-        }
-
-        let _: u32 = parameters_stream
-            .read_stream_le()
-            .map_err(|_| "[TicketGrantingProtocol::login_ex] Failed to skip misc item")?;
-
-        let data_holder_content: Vec<u8> = parameters_stream
-            .read_stream_le::<NexBuffer>()
-            .map_err(|_| "Cannot read NexBuffer")?
-            .into();
-
-        if data_holder_content.is_empty() {
-            return Err("Data holder content is empty");
-        }
-
-        let mut data_holder_content_stream = StreamContainer::new(data_holder_content);
-
-        let ticket_granting_info = data_holder_content_stream
-            .read_stream_le::<TicketGrantingInfo>()
-            .map_err(|_| "Could not read TicketGrantingInfo")?;
-
-        self.login_ex(
-            client,
-            request.call_id,
-            username,
-            Some(ticket_granting_info),
-        )
+        self.login_ex(client, request.call_id, username, Some(data_holder.into()))
     }
 
     fn handle_request_ticket(
