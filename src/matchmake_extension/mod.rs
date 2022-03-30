@@ -1,5 +1,5 @@
-mod matchmake_extension_types;
-pub use matchmake_extension_types::*;
+mod protocol;
+pub use protocol::*;
 
-mod matchmake_extension_core;
-pub use matchmake_extension_core::*;
+mod types;
+pub use types::*;
