@@ -49,7 +49,7 @@ pub trait TicketGrantingProtocol {
         client: &mut ClientConnection,
         call_id: u32,
         username: String,
-        ticket_granting_info: Option<AuthenticationInfo>,
+        ticket_granting_info: AuthenticationInfo,
     ) -> Result<(), &'static str>;
     fn request_ticket(
         &self,
@@ -125,7 +125,7 @@ pub trait TicketGrantingProtocol {
             return Err("Data holder name mismatch");
         }
 
-        self.login_ex(client, request.call_id, username, Some(data_holder.into()))
+        self.login_ex(client, request.call_id, username, data_holder.into())
     }
 
     fn handle_request_ticket(
