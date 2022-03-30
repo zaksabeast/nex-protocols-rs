@@ -2,37 +2,37 @@ use nex_rs::nex_types::{DateTime, NexList, NexQBuffer, NexString, ResultCode, Re
 use no_std_io::{EndianRead, EndianWrite};
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GetMetasRequest {
+pub struct GetMetasRequest {
     data_ids: NexList<u64>,
     param: DataStoreGetMetaParam,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GetMetasResponse {
+pub struct GetMetasResponse {
     p_meta_info: NexList<DataStoreMetaInfo>,
     p_results: NexList<ResultCode>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct RateObjectRequest {
+pub struct RateObjectRequest {
     target: DataStoreRatingTarget,
     param: DataStoreRateObjectParam,
     fetch_ratings: bool,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct RateObjectResponse {
+pub struct RateObjectResponse {
     p_rating: DataStoreRatingInfo,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStoreRatingInfoWithSlot {
+pub struct DataStoreRatingInfoWithSlot {
     slot: i8,
     rating: DataStoreRatingInfo,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStoreMetaInfo {
+pub struct DataStoreMetaInfo {
     data_id: u64,
     owner_id: u32,
     size: u32,
@@ -55,20 +55,20 @@ struct DataStoreMetaInfo {
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStoreRatingInfo {
+pub struct DataStoreRatingInfo {
     total_value: i64,
     count: u32,
     initial_value: i64,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStorePersistenceTarget {
+pub struct DataStorePersistenceTarget {
     owner_id: u32,
     persistence_slot_id: u16,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStoreGetMetaParam {
+pub struct DataStoreGetMetaParam {
     data_id: u64,
     persistence_target: DataStorePersistenceTarget,
     result_option: u8,
@@ -76,19 +76,19 @@ struct DataStoreGetMetaParam {
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStoreRatingTarget {
+pub struct DataStoreRatingTarget {
     data_id: u64,
     slot: i8,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStoreRateObjectParam {
+pub struct DataStoreRateObjectParam {
     rating_value: i32,
     access_password: u64,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStoreRatingInitParam {
+pub struct DataStoreRatingInitParam {
     flag: u8,
     internal_flag: u8,
     lock_type: u8,
@@ -100,25 +100,25 @@ struct DataStoreRatingInitParam {
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStorePermission {
+pub struct DataStorePermission {
     permission: u8,
     recipient_ids: NexList<u32>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStoreRatingInitParamWithSlot {
+pub struct DataStoreRatingInitParamWithSlot {
     slot: i8,
     param: DataStoreRatingInitParam,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStorePersistenceInitParam {
+pub struct DataStorePersistenceInitParam {
     persistence_slot_id: u16,
     delete_last_object: bool,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStorePreparePostParam {
+pub struct DataStorePreparePostParam {
     size: u32,
     name: NexString,
     data_type: u16,
@@ -135,17 +135,17 @@ struct DataStorePreparePostParam {
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct PostMetaBinaryRequest {
+pub struct PostMetaBinaryRequest {
     param: DataStorePreparePostParam,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct PostMetaBinaryResponse {
+pub struct PostMetaBinaryResponse {
     data_id: u64,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStoreChangeMetaCompareParam {
+pub struct DataStoreChangeMetaCompareParam {
     comparison_flag: u32,
     name: NexString,
     permission: DataStorePermission,
@@ -159,7 +159,7 @@ struct DataStoreChangeMetaCompareParam {
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DataStoreChangeMetaParam {
+pub struct DataStoreChangeMetaParam {
     data_id: u64,
     modifies_flag: u32,
     name: NexString,
@@ -177,30 +177,30 @@ struct DataStoreChangeMetaParam {
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct ChangeMetasRequest {
+pub struct ChangeMetasRequest {
     data_ids: NexList<u64>,
     params: NexList<DataStoreChangeMetaParam>,
     transactional: bool,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct ChangeMetasResponse {
+pub struct ChangeMetasResponse {
     p_results: NexList<ResultCode>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationRecordKey {
+pub struct GlobalTradeStationRecordKey {
     data_id: u64,
     password: u64,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct PrepareUploadPokemonResponse {
+pub struct PrepareUploadPokemonResponse {
     p_record_key: GlobalTradeStationRecordKey,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationUploadPokemonParam {
+pub struct GlobalTradeStationUploadPokemonParam {
     prepare_upload_key: GlobalTradeStationRecordKey,
     period: u16,
     index_data: NexQBuffer,
@@ -209,47 +209,47 @@ struct GlobalTradeStationUploadPokemonParam {
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct UploadPokemonRequest {
+pub struct UploadPokemonRequest {
     param: GlobalTradeStationUploadPokemonParam,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationTradeKey {
+pub struct GlobalTradeStationTradeKey {
     data_id: u64,
     version: u32,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationPrepareTradePokemonParam {
+pub struct GlobalTradeStationPrepareTradePokemonParam {
     trade_key: GlobalTradeStationTradeKey,
     prepare_upload_key: GlobalTradeStationRecordKey,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct PrepareTradePokemonRequest {
+pub struct PrepareTradePokemonRequest {
     param: GlobalTradeStationPrepareTradePokemonParam,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct PrepareTradePokemonResponse {
+pub struct PrepareTradePokemonResponse {
     p_result: GlobalTradeStationPrepareTradePokemonResult,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationDownloadPokemonResult {
+pub struct GlobalTradeStationDownloadPokemonResult {
     data_id: u64,
     index_data: NexQBuffer,
     pokemon_data: NexQBuffer,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationPrepareTradePokemonResult {
+pub struct GlobalTradeStationPrepareTradePokemonResult {
     result: GlobalTradeStationDownloadPokemonResult,
     prepare_trade_key: GlobalTradeStationRecordKey,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationTradePokemonParam {
+pub struct GlobalTradeStationTradePokemonParam {
     trade_key: GlobalTradeStationTradeKey,
     prepare_trade_key: GlobalTradeStationRecordKey,
     prepare_upload_key: GlobalTradeStationRecordKey,
@@ -261,70 +261,70 @@ struct GlobalTradeStationTradePokemonParam {
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct TradePokemonRequest {
+pub struct TradePokemonRequest {
     param: GlobalTradeStationTradePokemonParam,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct TradePokemonResponse {
+pub struct TradePokemonResponse {
     p_result: GlobalTradeStationTradePokemonResult,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationTradePokemonResult {
+pub struct GlobalTradeStationTradePokemonResult {
     result: GlobalTradeStationDownloadPokemonResult,
     my_data_id: u64,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationDownloadOtherPokemonParam {
+pub struct GlobalTradeStationDownloadOtherPokemonParam {
     prepare_upload_key: GlobalTradeStationRecordKey,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DownloadOtherPokemonRequest {
+pub struct DownloadOtherPokemonRequest {
     param: GlobalTradeStationDownloadOtherPokemonParam,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DownloadOtherPokemonResponse {
+pub struct DownloadOtherPokemonResponse {
     p_result: GlobalTradeStationTradePokemonResult,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationDownloadMyPokemonParam {
+pub struct GlobalTradeStationDownloadMyPokemonParam {
     prepare_upload_key: GlobalTradeStationRecordKey,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationDownloadMyPokemonResult {
+pub struct GlobalTradeStationDownloadMyPokemonResult {
     result: GlobalTradeStationDownloadPokemonResult,
     is_traded: bool,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DownloadMyPokemonRequest {
+pub struct DownloadMyPokemonRequest {
     param: GlobalTradeStationDownloadMyPokemonParam,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DownloadMyPokemonResponse {
+pub struct DownloadMyPokemonResponse {
     p_result: GlobalTradeStationDownloadMyPokemonResult,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationDeletePokemonParam {
+pub struct GlobalTradeStationDeletePokemonParam {
     prepare_upload_key: GlobalTradeStationRecordKey,
     delete_flag: u8,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct DeletePokemonRequest {
+pub struct DeletePokemonRequest {
     param: GlobalTradeStationDeletePokemonParam,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationSearchPokemonParam {
+pub struct GlobalTradeStationSearchPokemonParam {
     prepare_upload_key: GlobalTradeStationRecordKey,
     conditions: NexList<u32>,
     result_order_column: u8,
@@ -335,12 +335,12 @@ struct GlobalTradeStationSearchPokemonParam {
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct SearchPokemonV2Request {
+pub struct SearchPokemonV2Request {
     param: GlobalTradeStationSearchPokemonParam,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationData {
+pub struct GlobalTradeStationData {
     data_id: u64,
     owner_id: u32,
     updated_time: DateTime,
@@ -349,13 +349,13 @@ struct GlobalTradeStationData {
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct GlobalTradeStationSearchPokemonResult {
+pub struct GlobalTradeStationSearchPokemonResult {
     total_count: u32,
     result: NexList<GlobalTradeStationData>,
     total_count_type: u8,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
-struct SearchPokemonV2Response {
+pub struct SearchPokemonV2Response {
     p_result: GlobalTradeStationSearchPokemonResult,
 }
