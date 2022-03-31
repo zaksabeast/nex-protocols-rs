@@ -84,7 +84,7 @@ pub trait TicketGrantingProtocol {
             .map_err(|_| "Can not read username")?
             .into();
 
-        if username.trim() == String::default() {
+        if username.trim().is_empty() {
             return Err("Failed to read username");
         }
 
@@ -105,7 +105,7 @@ pub trait TicketGrantingProtocol {
             .map_err(|_| "Can not read username")?
             .into();
 
-        if username.trim() != String::default() {
+        if username.trim().is_empty() {
             return Err("Failed to read username");
         }
 
@@ -158,7 +158,7 @@ pub trait TicketGrantingProtocol {
             .map_err(|_| "Can not read username")?
             .into();
 
-        if username.trim() != String::default() {
+        if username.trim().is_empty() {
             return Err("[TicketGrantingProtocol::get_pid] Failed to read username");
         }
 
