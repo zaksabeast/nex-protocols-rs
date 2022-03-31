@@ -25,12 +25,6 @@ pub struct AuthenticationInfo {
     server_version: u32,
 }
 
-impl From<DataHolder<AuthenticationInfo>> for AuthenticationInfo {
-    fn from(dh: DataHolder<AuthenticationInfo>) -> Self {
-        dh.into()
-    }
-}
-
 impl AuthenticationInfo {
     pub fn new() -> Self {
         Self::default()
@@ -125,7 +119,7 @@ pub trait TicketGrantingProtocol {
             return Err("Data holder name mismatch");
         }
 
-        self.login_ex(client, request.call_id, username, data_holder.into())
+        self.login_ex(client, request.call_id, username, data_holder.into_object())
     }
 
     fn handle_request_ticket(
