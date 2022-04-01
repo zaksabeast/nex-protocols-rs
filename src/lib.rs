@@ -6,3 +6,5 @@
 pub mod datastore_usum;
 pub mod matchmake_extension;
 pub mod ticket_granting;
+pub mod health;
+pub mod monitoring;
