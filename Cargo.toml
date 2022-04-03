@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-nex-rs = { git = "https://github.com/zaksabeast/nex-rs.git", rev = "29f9365" }
-no_std_io = { git = "https://github.com/zaksabeast/no_std_io.git", rev = "fb1d06e" }
+async-trait = "0.1.52"
+nex-rs = { git = "https://github.com/zaksabeast/nex-rs.git", rev = "2db5491" }
+no_std_io = { git = "https://github.com/zaksabeast/no_std_io.git", rev = "4a9ca86" }
 num_enum = { version = "0.5", default-features = false }
