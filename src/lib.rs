@@ -4,7 +4,7 @@
 #![allow(unused_variables)]
 
 pub mod datastore_usum;
-pub mod matchmake_extension;
-pub mod ticket_granting;
 pub mod health;
+pub mod matchmake_extension;
 pub mod monitoring;
+pub mod ticket_granting;
