@@ -7,8 +7,9 @@ use crate::datastore_usum::{
 };
 use async_trait::async_trait;
 use nex_rs::client::ClientConnection;
-use nex_rs::nex_types::NexList;
+use nex_rs::nex_types::{NexList, ResultCode};
 use nex_rs::packet::{Packet, PacketV1};
+use nex_rs::server::Server;
 use no_std_io::{StreamContainer, StreamReader};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
@@ -32,83 +33,73 @@ pub enum DataStoreMethod {
 }
 
 #[async_trait(?Send)]
-pub trait DataStoreProtocol {
-    fn get_metas(
+pub trait DataStoreProtocol: Server {
+    async fn get_metas(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         data_ids: NexList<u64>,
         param: DataStoreGetMetaParam,
-    ) -> Result<(), &'static str>;
-    fn rate_object(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn rate_object(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         target: DataStoreRatingTarget,
         param: DataStoreRateObjectParam,
         fetch_ratings: bool,
-    ) -> Result<(), &'static str>;
-    fn post_meta_binary(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn post_meta_binary(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         param: DataStorePreparePostParam,
-    ) -> Result<(), &'static str>;
-    fn change_metas(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn change_metas(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         data_ids: NexList<u64>,
         params: NexList<DataStoreChangeMetaParam>,
         transactional: bool,
-    ) -> Result<(), &'static str>;
-    fn prepare_upload_pokemon(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn prepare_upload_pokemon(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
-    ) -> Result<(), &'static str>;
-    fn upload_pokemon(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn upload_pokemon(
         &self,
         client: &mut ClientConnection,
         param: GlobalTradeStationUploadPokemonParam,
-    ) -> Result<(), &'static str>;
-    fn prepare_trade_pokemon(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn prepare_trade_pokemon(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         param: GlobalTradeStationPrepareTradePokemonParam,
-    ) -> Result<(), &'static str>;
-    fn trade_pokemon(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn trade_pokemon(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         param: GlobalTradeStationTradePokemonParam,
-    ) -> Result<(), &'static str>;
-    fn download_other_pokemon(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn download_other_pokemon(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         param: GlobalTradeStationDownloadOtherPokemonParam,
-    ) -> Result<(), &'static str>;
-    fn download_my_pokemon(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn download_my_pokemon(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         param: GlobalTradeStationDownloadMyPokemonParam,
-    ) -> Result<(), &'static str>;
-    fn delete_pokemon(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn delete_pokemon(
         &self,
         client: &mut ClientConnection,
         param: GlobalTradeStationDeletePokemonParam,
     ) -> Result<(), &'static str>;
-    fn search_pokemon_v2(
+    async fn search_pokemon_v2(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         param: GlobalTradeStationSearchPokemonParam,
-    ) -> Result<(), &'static str>;
+    ) -> Result<Vec<u8>, ResultCode>;
 
-    fn handle_get_metas(
+    async fn handle_get_metas(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -125,10 +116,32 @@ pub trait DataStoreProtocol {
             .read_stream_le::<DataStoreGetMetaParam>()
             .map_err(|_| "Can not read DataStoreGetMetaParam")?;
 
-        self.get_metas(client, request.call_id, data_ids, param)
+        match self.get_metas(client, data_ids, param).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_rate_object(
+    async fn handle_rate_object(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -148,10 +161,32 @@ pub trait DataStoreProtocol {
             .read_stream_le::<bool>()
             .map_err(|_| "Can not read fetch ratings bool")?;
 
-        self.rate_object(client, request.call_id, target, param, fetch_ratings)
+        match self.rate_object(client, target, param, fetch_ratings).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_post_meta_binary(
+    async fn handle_post_meta_binary(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -165,10 +200,32 @@ pub trait DataStoreProtocol {
             .read_stream_le::<DataStorePreparePostParam>()
             .map_err(|_| "Can not read DataStorePreparePostParam")?;
 
-        self.post_meta_binary(client, request.call_id, param)
+        match self.post_meta_binary(client, param).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_change_metas(
+    async fn handle_change_metas(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -188,18 +245,66 @@ pub trait DataStoreProtocol {
             .read_stream_le::<bool>()
             .map_err(|_| "Can not read transactional bool")?;
 
-        self.change_metas(client, request.call_id, data_ids, params, transactional)
+        match self
+            .change_metas(client, data_ids, params, transactional)
+            .await
+        {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_prepare_upload_pokemon(
+    async fn handle_prepare_upload_pokemon(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
-        self.prepare_upload_pokemon(client, packet.get_rmc_request().call_id)
+        let request = packet.get_rmc_request();
+        match self.prepare_upload_pokemon(client).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_upload_pokemon(
+    async fn handle_upload_pokemon(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -213,10 +318,32 @@ pub trait DataStoreProtocol {
             .read_stream_le::<GlobalTradeStationUploadPokemonParam>()
             .map_err(|_| "Can not read GlobalTradeStationUploadPokemonParam")?;
 
-        self.upload_pokemon(client, param)
+        match self.upload_pokemon(client, param).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_prepare_trade_pokemon(
+    async fn handle_prepare_trade_pokemon(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -230,10 +357,32 @@ pub trait DataStoreProtocol {
             .read_stream_le::<GlobalTradeStationPrepareTradePokemonParam>()
             .map_err(|_| "Can not read GlobalTradeStationPrepareTradePokemonParam")?;
 
-        self.prepare_trade_pokemon(client, request.call_id, param)
+        match self.prepare_trade_pokemon(client, param).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_trade_pokemon(
+    async fn handle_trade_pokemon(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -247,10 +396,32 @@ pub trait DataStoreProtocol {
             .read_stream_le::<GlobalTradeStationTradePokemonParam>()
             .map_err(|_| "Can not read GlobalTradeStationTradePokemonParam")?;
 
-        self.trade_pokemon(client, request.call_id, param)
+        match self.trade_pokemon(client, param).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_download_other_pokemon(
+    async fn handle_download_other_pokemon(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -264,10 +435,32 @@ pub trait DataStoreProtocol {
             .read_stream_le::<GlobalTradeStationDownloadOtherPokemonParam>()
             .map_err(|_| "Can not read GlobalTradeStationDownloadOtherPokemonParam")?;
 
-        self.download_other_pokemon(client, request.call_id, param)
+        match self.download_other_pokemon(client, param).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_download_my_pokemon(
+    async fn handle_download_my_pokemon(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -281,10 +474,32 @@ pub trait DataStoreProtocol {
             .read_stream_le::<GlobalTradeStationDownloadMyPokemonParam>()
             .map_err(|_| "Can not read GlobalTradeStationDownloadMyPokemonParam")?;
 
-        self.download_my_pokemon(client, request.call_id, param)
+        match self.download_my_pokemon(client, param).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_delete_pokemon(
+    async fn handle_delete_pokemon(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -298,10 +513,10 @@ pub trait DataStoreProtocol {
             .read_stream_le::<GlobalTradeStationDeletePokemonParam>()
             .map_err(|_| "Can not read GlobalTradeStationDeletePokemonParam")?;
 
-        self.delete_pokemon(client, param)
+        self.delete_pokemon(client, param).await
     }
 
-    fn handle_search_pokemon_v2(
+    async fn handle_search_pokemon_v2(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -315,6 +530,28 @@ pub trait DataStoreProtocol {
             .read_stream_le::<GlobalTradeStationSearchPokemonParam>()
             .map_err(|_| "Can not read GlobalTradeStationSearchPokemonParam")?;
 
-        self.search_pokemon_v2(client, request.call_id, param)
+        match self.search_pokemon_v2(client, param).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 }

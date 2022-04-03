@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use nex_rs::client::ClientConnection;
-use nex_rs::nex_types::{DataHolder, NexString};
+use nex_rs::nex_types::{DataHolder, NexString, ResultCode};
 use nex_rs::packet::{Packet, PacketV1};
+use nex_rs::server::Server;
 use no_std_io::{EndianRead, EndianWrite, StreamContainer, StreamReader};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
@@ -33,52 +34,43 @@ impl AuthenticationInfo {
 }
 
 #[async_trait(?Send)]
-pub trait TicketGrantingProtocol {
+pub trait TicketGrantingProtocol: Server {
     async fn login(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         username: String,
-    ) -> Result<(), &'static str>;
+    ) -> Result<Vec<u8>, ResultCode>;
     async fn login_ex(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         username: String,
         ticket_granting_info: AuthenticationInfo,
-    ) -> Result<(), &'static str>;
+    ) -> Result<Vec<u8>, ResultCode>;
     async fn request_ticket(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         user_pid: u32,
         server_pid: u32,
-    ) -> Result<(), &'static str>;
+    ) -> Result<Vec<u8>, ResultCode>;
     async fn get_pid(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         username: String,
-    ) -> Result<(), &'static str>;
+    ) -> Result<Vec<u8>, ResultCode>;
     async fn get_name(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         user_pid: u32,
-    ) -> Result<(), &'static str>;
-    async fn login_with_param(
-        &self,
-        client: &mut ClientConnection,
-        call_id: u32,
-    ) -> Result<(), &'static str>;
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn login_with_param(&self, client: &mut ClientConnection) -> Result<Vec<u8>, ResultCode>;
 
     async fn handle_login(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
-        let request = packet.get_rmc_request();
-        let parameters = request.parameters.as_slice();
+        let rmc_request = packet.get_rmc_request();
+        let parameters = rmc_request.parameters.as_slice();
         let mut parameters_stream = StreamContainer::new(parameters);
 
         let username: String = parameters_stream
@@ -90,7 +82,29 @@ pub trait TicketGrantingProtocol {
             return Err("Failed to read username");
         }
 
-        self.login(client, request.call_id, username).await
+        match self.login(client, username).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
     async fn handle_login_ex(
@@ -98,8 +112,8 @@ pub trait TicketGrantingProtocol {
         client: &mut ClientConnection,
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
-        let request = packet.get_rmc_request();
-        let parameters = request.parameters.as_slice();
+        let rmc_request = packet.get_rmc_request();
+        let parameters = rmc_request.parameters.as_slice();
         let mut parameters_stream = StreamContainer::new(parameters);
 
         let username: String = parameters_stream
@@ -121,8 +135,32 @@ pub trait TicketGrantingProtocol {
             return Err("Data holder name mismatch");
         }
 
-        self.login_ex(client, request.call_id, username, data_holder.into_object())
+        match self
+            .login_ex(client, username, data_holder.into_object())
             .await
+        {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
     async fn handle_request_ticket(
@@ -130,8 +168,8 @@ pub trait TicketGrantingProtocol {
         client: &mut ClientConnection,
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
-        let request = packet.get_rmc_request();
-        let parameters = request.parameters.as_slice();
+        let rmc_request = packet.get_rmc_request();
+        let parameters = rmc_request.parameters.as_slice();
         if parameters.len() != 8 {
             return Err("[TicketGrantingProtocol::request_ticket] Parameters length not 8");
         }
@@ -145,8 +183,29 @@ pub trait TicketGrantingProtocol {
             .read_stream_le()
             .map_err(|_| "[TicketGrantingProtocol::request_ticket] Failed to read server pid")?;
 
-        self.request_ticket(client, request.call_id, user_pid, server_pid)
-            .await
+        match self.request_ticket(client, user_pid, server_pid).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
     async fn handle_get_pid(
@@ -154,8 +213,8 @@ pub trait TicketGrantingProtocol {
         client: &mut ClientConnection,
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
-        let request = packet.get_rmc_request();
-        let parameters = request.parameters.as_slice();
+        let rmc_request = packet.get_rmc_request();
+        let parameters = rmc_request.parameters.as_slice();
         let mut parameters_stream = StreamContainer::new(parameters);
         let username: String = parameters_stream
             .read_stream_le::<NexString>()
@@ -166,7 +225,29 @@ pub trait TicketGrantingProtocol {
             return Err("[TicketGrantingProtocol::get_pid] Failed to read username");
         }
 
-        self.get_pid(client, request.call_id, username).await
+        match self.get_pid(client, username).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
     async fn handle_get_name(
@@ -174,8 +255,8 @@ pub trait TicketGrantingProtocol {
         client: &mut ClientConnection,
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
-        let request = packet.get_rmc_request();
-        let parameters = request.parameters.as_slice();
+        let rmc_request = packet.get_rmc_request();
+        let parameters = rmc_request.parameters.as_slice();
 
         if parameters.len() != 4 {
             return Err("[TicketGrantingProtocol::get_name] Parameters length not 4");
@@ -187,6 +268,28 @@ pub trait TicketGrantingProtocol {
             .read_stream_le()
             .map_err(|_| "[TicketGrantingProtocol::get_name] Failed to read user PID")?;
 
-        self.get_name(client, request.call_id, user_pid).await
+        match self.get_name(client, user_pid).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 }

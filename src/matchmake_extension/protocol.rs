@@ -1,8 +1,9 @@
 use crate::matchmake_extension::MatchmakeSessionSearchCriteria;
 use async_trait::async_trait;
 use nex_rs::client::ClientConnection;
-use nex_rs::nex_types::ResultRange;
+use nex_rs::nex_types::{ResultCode, ResultRange};
 use nex_rs::packet::{Packet, PacketV1};
+use nex_rs::server::Server;
 use no_std_io::{StreamContainer, StreamReader};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
@@ -20,46 +21,40 @@ pub enum MatchmakeExtensionMethod {
 }
 
 #[async_trait(?Send)]
-pub trait MatchmakeExtensionProtocol {
-    fn close_participation(
+pub trait MatchmakeExtensionProtocol: Server {
+    async fn close_participation(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         gid: u32,
-    ) -> Result<(), &'static str>;
-    fn open_participation(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn open_participation(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         gid: u32,
-    ) -> Result<(), &'static str>;
-    fn browse_matchmake_session(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn browse_matchmake_session(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         matchmake_session_search_criteria: MatchmakeSessionSearchCriteria,
         result_range: ResultRange,
-    ) -> Result<(), &'static str>;
-    fn browse_matchmake_session_with_host_urls(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn browse_matchmake_session_with_host_urls(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         matchmake_session_search_criteria: MatchmakeSessionSearchCriteria,
         result_range: ResultRange,
-    ) -> Result<(), &'static str>;
-    fn get_attraction_status(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn get_attraction_status(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
-    ) -> Result<(), &'static str>;
-    fn simple_matchmake(
+    ) -> Result<Vec<u8>, ResultCode>;
+    async fn simple_matchmake(
         &self,
         client: &mut ClientConnection,
-        call_id: u32,
         group_id: u32,
-    ) -> Result<(), &'static str>;
+    ) -> Result<Vec<u8>, ResultCode>;
 
-    fn handle_close_participation(
+    async fn handle_close_participation(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -72,10 +67,32 @@ pub trait MatchmakeExtensionProtocol {
             .read_stream_le::<u32>()
             .map_err(|_| "Can not read group id")?;
 
-        self.close_participation(client, packet.get_rmc_request().call_id, gid)
+        match self.close_participation(client, gid).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_open_participation(
+    async fn handle_open_participation(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -88,10 +105,32 @@ pub trait MatchmakeExtensionProtocol {
             .read_stream_le::<u32>()
             .map_err(|_| "Can not read group id")?;
 
-        self.open_participation(client, packet.get_rmc_request().call_id, gid)
+        match self.open_participation(client, gid).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_browse_matchmake_session(
+    async fn handle_browse_matchmake_session(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -108,15 +147,35 @@ pub trait MatchmakeExtensionProtocol {
             .read_stream_le::<ResultRange>()
             .map_err(|_| "Can not read result range")?;
 
-        self.browse_matchmake_session(
-            client,
-            packet.get_rmc_request().call_id,
-            matchmake_session_search_criteria,
-            result_range,
-        )
+        match self
+            .browse_matchmake_session(client, matchmake_session_search_criteria, result_range)
+            .await
+        {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_browse_matchmake_session_with_host_urls(
+    async fn handle_browse_matchmake_session_with_host_urls(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -133,23 +192,70 @@ pub trait MatchmakeExtensionProtocol {
             .read_stream_le::<ResultRange>()
             .map_err(|_| "Can not read result range")?;
 
-        self.browse_matchmake_session_with_host_urls(
-            client,
-            packet.get_rmc_request().call_id,
-            matchmake_session_search_criteria,
-            result_range,
-        )
+        match self
+            .browse_matchmake_session_with_host_urls(
+                client,
+                matchmake_session_search_criteria,
+                result_range,
+            )
+            .await
+        {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_get_attraction_status(
+    async fn handle_get_attraction_status(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
-        self.get_attraction_status(client, packet.get_rmc_request().call_id)
+        let request = packet.get_rmc_request();
+        match self.get_attraction_status(client).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_simple_matchmake(
+    async fn handle_simple_matchmake(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -162,6 +268,28 @@ pub trait MatchmakeExtensionProtocol {
             .read_stream_le::<u32>()
             .map_err(|_| "Can not read group id")?;
 
-        self.simple_matchmake(client, packet.get_rmc_request().call_id, group_id)
+        match self.simple_matchmake(client, group_id).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 }

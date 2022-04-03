@@ -1,5 +1,8 @@
+use async_trait::async_trait;
 use nex_rs::client::ClientConnection;
+use nex_rs::nex_types::ResultCode;
 use nex_rs::packet::{Packet, PacketV1};
+use nex_rs::server::Server;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 #[derive(Debug, Clone, Copy, PartialEq, TryFromPrimitive, IntoPrimitive)]
@@ -9,15 +12,73 @@ pub enum MonitoringMethod {
     GetClusterMembers = 0x2,
 }
 
-pub trait MonitoringProtocol {
-    fn ping_daemon(&self, client: &mut ClientConnection, call_id: u32) -> Result<(), &'static str>;
-    fn get_cluster_members(&self, client: &mut ClientConnection, call_id: u32) -> Result<(), &'static str>;
+#[async_trait(?Send)]
+pub trait MonitoringProtocol: Server {
+    async fn ping_daemon(&self, client: &mut ClientConnection) -> Result<Vec<u8>, ResultCode>;
+    async fn get_cluster_members(
+        &self,
+        client: &mut ClientConnection,
+    ) -> Result<Vec<u8>, ResultCode>;
 
-    fn handle_ping_daemon(&self, client: &mut ClientConnection, packet: &PacketV1) -> Result<(), &'static str> {
-        self.ping_daemon(client, packet.get_rmc_request().call_id)
+    async fn handle_ping_daemon(
+        &self,
+        client: &mut ClientConnection,
+        packet: &PacketV1,
+    ) -> Result<(), &'static str> {
+        let rmc_request = packet.get_rmc_request();
+        match self.ping_daemon(client).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
-    fn handle_get_cluster_members(&self, client: &mut ClientConnection, packet: &PacketV1) -> Result<(), &'static str> {
-        self.get_cluster_members(client, packet.get_rmc_request().call_id)
+    async fn handle_get_cluster_members(
+        &self,
+        client: &mut ClientConnection,
+        packet: &PacketV1,
+    ) -> Result<(), &'static str> {
+        let rmc_request = packet.get_rmc_request();
+        match self.get_cluster_members(client).await {
+            Ok(data) => {
+                self.send_success(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    data,
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    rmc_request.protocol_id,
+                    rmc_request.method_id,
+                    rmc_request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 }
