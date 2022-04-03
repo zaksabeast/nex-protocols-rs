@@ -5,6 +5,7 @@ use crate::datastore_usum::{
     GlobalTradeStationPrepareTradePokemonParam, GlobalTradeStationSearchPokemonParam,
     GlobalTradeStationTradePokemonParam, GlobalTradeStationUploadPokemonParam,
 };
+use async_trait::async_trait;
 use nex_rs::client::ClientConnection;
 use nex_rs::nex_types::NexList;
 use nex_rs::packet::{Packet, PacketV1};
@@ -30,6 +31,7 @@ pub enum DataStoreMethod {
     SearchPokemonV2 = 0x37,
 }
 
+#[async_trait(?Send)]
 pub trait DataStoreProtocol {
     fn get_metas(
         &self,

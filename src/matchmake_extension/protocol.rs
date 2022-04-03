@@ -1,4 +1,5 @@
 use crate::matchmake_extension::MatchmakeSessionSearchCriteria;
+use async_trait::async_trait;
 use nex_rs::client::ClientConnection;
 use nex_rs::nex_types::ResultRange;
 use nex_rs::packet::{Packet, PacketV1};
@@ -18,6 +19,7 @@ pub enum MatchmakeExtensionMethod {
     SimpleMatchmake = 0x33,
 }
 
+#[async_trait(?Send)]
 pub trait MatchmakeExtensionProtocol {
     fn close_participation(
         &self,

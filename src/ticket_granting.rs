@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use nex_rs::client::ClientConnection;
 use nex_rs::nex_types::{DataHolder, NexString};
 use nex_rs::packet::{Packet, PacketV1};
@@ -17,7 +18,7 @@ pub enum TicketGrantingMethod {
     LoginWithParam = 0x6,
 }
 
-#[derive(Default, EndianRead, EndianWrite)]
+#[derive(Debug, Default, EndianRead, EndianWrite)]
 pub struct AuthenticationInfo {
     token: NexString,
     ngs_version: u32,
@@ -31,46 +32,47 @@ impl AuthenticationInfo {
     }
 }
 
+#[async_trait(?Send)]
 pub trait TicketGrantingProtocol {
-    fn login(
+    async fn login(
         &self,
         client: &mut ClientConnection,
         call_id: u32,
         username: String,
     ) -> Result<(), &'static str>;
-    fn login_ex(
+    async fn login_ex(
         &self,
         client: &mut ClientConnection,
         call_id: u32,
         username: String,
         ticket_granting_info: AuthenticationInfo,
     ) -> Result<(), &'static str>;
-    fn request_ticket(
+    async fn request_ticket(
         &self,
         client: &mut ClientConnection,
         call_id: u32,
         user_pid: u32,
         server_pid: u32,
     ) -> Result<(), &'static str>;
-    fn get_pid(
+    async fn get_pid(
         &self,
         client: &mut ClientConnection,
         call_id: u32,
         username: String,
     ) -> Result<(), &'static str>;
-    fn get_name(
+    async fn get_name(
         &self,
         client: &mut ClientConnection,
         call_id: u32,
         user_pid: u32,
     ) -> Result<(), &'static str>;
-    fn login_with_param(
+    async fn login_with_param(
         &self,
         client: &mut ClientConnection,
         call_id: u32,
     ) -> Result<(), &'static str>;
 
-    fn handle_login(
+    async fn handle_login(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -88,10 +90,10 @@ pub trait TicketGrantingProtocol {
             return Err("Failed to read username");
         }
 
-        self.login(client, request.call_id, username)
+        self.login(client, request.call_id, username).await
     }
 
-    fn handle_login_ex(
+    async fn handle_login_ex(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -120,9 +122,10 @@ pub trait TicketGrantingProtocol {
         }
 
         self.login_ex(client, request.call_id, username, data_holder.into_object())
+            .await
     }
 
-    fn handle_request_ticket(
+    async fn handle_request_ticket(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -143,9 +146,10 @@ pub trait TicketGrantingProtocol {
             .map_err(|_| "[TicketGrantingProtocol::request_ticket] Failed to read server pid")?;
 
         self.request_ticket(client, request.call_id, user_pid, server_pid)
+            .await
     }
 
-    fn handle_get_pid(
+    async fn handle_get_pid(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -162,10 +166,10 @@ pub trait TicketGrantingProtocol {
             return Err("[TicketGrantingProtocol::get_pid] Failed to read username");
         }
 
-        self.get_pid(client, request.call_id, username)
+        self.get_pid(client, request.call_id, username).await
     }
 
-    fn handle_get_name(
+    async fn handle_get_name(
         &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
@@ -183,6 +187,6 @@ pub trait TicketGrantingProtocol {
             .read_stream_le()
             .map_err(|_| "[TicketGrantingProtocol::get_name] Failed to read user PID")?;
 
-        self.get_name(client, request.call_id, user_pid)
+        self.get_name(client, request.call_id, user_pid).await
     }
 }
