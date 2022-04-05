@@ -6,7 +6,7 @@ use nex_rs::server::Server;
 use no_std_io::{StreamContainer, StreamReader};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
-pub const SECURE_CONNECTION_PROTOCOL_ID: u8 = 0x11;
+pub const SECURE_CONNECTION_PROTOCOL_ID: u8 = 0xB;
 
 #[derive(Debug, Clone, Copy, PartialEq, TryFromPrimitive, IntoPrimitive)]
 #[repr(u32)]
