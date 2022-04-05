@@ -156,11 +156,11 @@ pub struct SimpleCommunity {
 
 #[derive(Default, EndianRead, EndianWrite)]
 pub struct AttractionStatus {
-    message_interval: u16,
-    operation_flag: u8,
-    active_player_invite_param: u16,
-    active_player_join_param: u16,
-    extra_params: NexList<u32>,
+    pub message_interval: u16,
+    pub operation_flag: u8,
+    pub active_player_invite_param: u16,
+    pub active_player_join_param: u16,
+    pub extra_params: NexList<u32>,
 }
 
 #[derive(Default, EndianRead, EndianWrite)]
