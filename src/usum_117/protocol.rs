@@ -5,6 +5,8 @@ use nex_rs::packet::{Packet, PacketV1};
 use nex_rs::server::Server;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
+pub const USUM_117_PROTOCOL_ID: u8 = 0x75;
+
 #[derive(Debug, Clone, Copy, PartialEq, TryFromPrimitive, IntoPrimitive)]
 #[repr(u32)]
 pub enum USUM117Method {
