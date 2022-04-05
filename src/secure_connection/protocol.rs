@@ -24,7 +24,7 @@ pub enum SecureConnectionMethod {
 #[async_trait(?Send)]
 pub trait SecureConnectionProtocol: Server {
     async fn register(
-        &mut self,
+        &self,
         client: &mut ClientConnection,
         my_urls: NexList<NexString>,
     ) -> Result<Vec<u8>, ResultCode>;
@@ -66,7 +66,7 @@ pub trait SecureConnectionProtocol: Server {
     ) -> Result<(), &'static str>;
 
     async fn handle_register(
-        &mut self,
+        &self,
         client: &mut ClientConnection,
         packet: &PacketV1,
     ) -> Result<(), &'static str> {
