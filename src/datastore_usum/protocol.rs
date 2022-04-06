@@ -1,13 +1,13 @@
 use crate::datastore_usum::{
-    DataStoreChangeMetaParam, DataStoreGetMetaParam, DataStorePreparePostParam,
-    DataStoreRateObjectParam, DataStoreRatingTarget, GlobalTradeStationDeletePokemonParam,
+    ChangeMetasRequest, DataStoreGetMetaParam, DataStorePreparePostParam, DataStoreRateObjectParam,
+    DataStoreRatingTarget, GlobalTradeStationDeletePokemonParam,
     GlobalTradeStationDownloadMyPokemonParam, GlobalTradeStationDownloadOtherPokemonParam,
     GlobalTradeStationPrepareTradePokemonParam, GlobalTradeStationSearchPokemonParam,
     GlobalTradeStationTradePokemonParam, GlobalTradeStationUploadPokemonParam,
 };
 use async_trait::async_trait;
 use nex_rs::client::ClientConnection;
-use nex_rs::nex_types::{NexList, ResultCode};
+use nex_rs::nex_types::{NexList, NexStruct, ResultCode};
 use nex_rs::packet::{Packet, PacketV1};
 use nex_rs::server::Server;
 use no_std_io::{StreamContainer, StreamReader};
@@ -55,9 +55,7 @@ pub trait DataStoreProtocol: Server {
     async fn change_metas(
         &self,
         client: &mut ClientConnection,
-        data_ids: NexList<u64>,
-        params: NexList<DataStoreChangeMetaParam>,
-        transactional: bool,
+        param: ChangeMetasRequest,
     ) -> Result<Vec<u8>, ResultCode>;
     async fn prepare_upload_pokemon(
         &self,
@@ -92,7 +90,7 @@ pub trait DataStoreProtocol: Server {
         &self,
         client: &mut ClientConnection,
         param: GlobalTradeStationDeletePokemonParam,
-    ) -> Result<(), &'static str>;
+    ) -> Result<(), ResultCode>;
     async fn search_pokemon_v2(
         &self,
         client: &mut ClientConnection,
@@ -197,10 +195,10 @@ pub trait DataStoreProtocol: Server {
         let mut parameters_stream = StreamContainer::new(parameters);
 
         let param = parameters_stream
-            .read_stream_le::<DataStorePreparePostParam>()
+            .read_stream_le::<NexStruct<DataStorePreparePostParam>>()
             .map_err(|_| "Can not read DataStorePreparePostParam")?;
 
-        match self.post_meta_binary(client, param).await {
+        match self.post_meta_binary(client, param.into_raw()).await {
             Ok(data) => {
                 self.send_success(
                     client,
@@ -235,20 +233,11 @@ pub trait DataStoreProtocol: Server {
 
         let mut parameters_stream = StreamContainer::new(parameters);
 
-        let data_ids = parameters_stream
-            .read_stream_le::<NexList<u64>>()
-            .map_err(|_| "Can not read data ids list")?;
-        let params = parameters_stream
-            .read_stream_le::<NexList<DataStoreChangeMetaParam>>()
-            .map_err(|_| "Can not read DataStoreChangeMetaParam list")?;
-        let transactional = parameters_stream
-            .read_stream_le::<bool>()
-            .map_err(|_| "Can not read transactional bool")?;
+        let param = parameters_stream
+            .read_stream_le::<ChangeMetasRequest>()
+            .map_err(|_| "Can not read ChangeMetasRequest")?;
 
-        match self
-            .change_metas(client, data_ids, params, transactional)
-            .await
-        {
+        match self.change_metas(client, param).await {
             Ok(data) => {
                 self.send_success(
                     client,
@@ -315,10 +304,10 @@ pub trait DataStoreProtocol: Server {
         let mut parameters_stream = StreamContainer::new(parameters);
 
         let param = parameters_stream
-            .read_stream_le::<GlobalTradeStationUploadPokemonParam>()
+            .read_stream_le::<NexStruct<GlobalTradeStationUploadPokemonParam>>()
             .map_err(|_| "Can not read GlobalTradeStationUploadPokemonParam")?;
 
-        match self.upload_pokemon(client, param).await {
+        match self.upload_pokemon(client, param.into_raw()).await {
             Ok(data) => {
                 self.send_success(
                     client,
@@ -354,10 +343,10 @@ pub trait DataStoreProtocol: Server {
         let mut parameters_stream = StreamContainer::new(parameters);
 
         let param = parameters_stream
-            .read_stream_le::<GlobalTradeStationPrepareTradePokemonParam>()
+            .read_stream_le::<NexStruct<GlobalTradeStationPrepareTradePokemonParam>>()
             .map_err(|_| "Can not read GlobalTradeStationPrepareTradePokemonParam")?;
 
-        match self.prepare_trade_pokemon(client, param).await {
+        match self.prepare_trade_pokemon(client, param.into_raw()).await {
             Ok(data) => {
                 self.send_success(
                     client,
@@ -393,10 +382,10 @@ pub trait DataStoreProtocol: Server {
         let mut parameters_stream = StreamContainer::new(parameters);
 
         let param = parameters_stream
-            .read_stream_le::<GlobalTradeStationTradePokemonParam>()
+            .read_stream_le::<NexStruct<GlobalTradeStationTradePokemonParam>>()
             .map_err(|_| "Can not read GlobalTradeStationTradePokemonParam")?;
 
-        match self.trade_pokemon(client, param).await {
+        match self.trade_pokemon(client, param.into_raw()).await {
             Ok(data) => {
                 self.send_success(
                     client,
@@ -432,10 +421,10 @@ pub trait DataStoreProtocol: Server {
         let mut parameters_stream = StreamContainer::new(parameters);
 
         let param = parameters_stream
-            .read_stream_le::<GlobalTradeStationDownloadOtherPokemonParam>()
+            .read_stream_le::<NexStruct<GlobalTradeStationDownloadOtherPokemonParam>>()
             .map_err(|_| "Can not read GlobalTradeStationDownloadOtherPokemonParam")?;
 
-        match self.download_other_pokemon(client, param).await {
+        match self.download_other_pokemon(client, param.into_raw()).await {
             Ok(data) => {
                 self.send_success(
                     client,
@@ -471,10 +460,10 @@ pub trait DataStoreProtocol: Server {
         let mut parameters_stream = StreamContainer::new(parameters);
 
         let param = parameters_stream
-            .read_stream_le::<GlobalTradeStationDownloadMyPokemonParam>()
+            .read_stream_le::<NexStruct<GlobalTradeStationDownloadMyPokemonParam>>()
             .map_err(|_| "Can not read GlobalTradeStationDownloadMyPokemonParam")?;
 
-        match self.download_my_pokemon(client, param).await {
+        match self.download_my_pokemon(client, param.into_raw()).await {
             Ok(data) => {
                 self.send_success(
                     client,
@@ -510,10 +499,32 @@ pub trait DataStoreProtocol: Server {
         let mut parameters_stream = StreamContainer::new(parameters);
 
         let param = parameters_stream
-            .read_stream_le::<GlobalTradeStationDeletePokemonParam>()
+            .read_stream_le::<NexStruct<GlobalTradeStationDeletePokemonParam>>()
             .map_err(|_| "Can not read GlobalTradeStationDeletePokemonParam")?;
 
-        self.delete_pokemon(client, param).await
+        match self.delete_pokemon(client, param.into_raw()).await {
+            Ok(_) => {
+                self.send_success(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    vec![],
+                )
+                .await?
+            }
+            Err(error_code) => {
+                self.send_error(
+                    client,
+                    request.protocol_id,
+                    request.method_id,
+                    request.call_id,
+                    error_code.into(),
+                )
+                .await?
+            }
+        }
+        Ok(())
     }
 
     async fn handle_search_pokemon_v2(
@@ -527,10 +538,10 @@ pub trait DataStoreProtocol: Server {
         let mut parameters_stream = StreamContainer::new(parameters);
 
         let param = parameters_stream
-            .read_stream_le::<GlobalTradeStationSearchPokemonParam>()
+            .read_stream_le::<NexStruct<GlobalTradeStationSearchPokemonParam>>()
             .map_err(|_| "Can not read GlobalTradeStationSearchPokemonParam")?;
 
-        match self.search_pokemon_v2(client, param).await {
+        match self.search_pokemon_v2(client, param.into_raw()).await {
             Ok(data) => {
                 self.send_success(
                     client,

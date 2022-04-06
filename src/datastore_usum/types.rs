@@ -1,361 +1,363 @@
-use nex_rs::nex_types::{DateTime, NexList, NexQBuffer, NexString, ResultCode, ResultRange};
+use nex_rs::nex_types::{
+    DateTime, NexList, NexQBuffer, NexString, NexStruct, ResultCode, ResultRange,
+};
 use no_std_io::{EndianRead, EndianWrite};
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GetMetasRequest {
-    data_ids: NexList<u64>,
-    param: DataStoreGetMetaParam,
+    pub data_ids: NexList<u64>,
+    pub param: NexStruct<DataStoreGetMetaParam>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GetMetasResponse {
-    p_meta_info: NexList<DataStoreMetaInfo>,
-    p_results: NexList<ResultCode>,
+    pub p_meta_info: NexList<NexStruct<DataStoreMetaInfo>>,
+    pub p_results: NexList<NexStruct<ResultCode>>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct RateObjectRequest {
-    target: DataStoreRatingTarget,
-    param: DataStoreRateObjectParam,
-    fetch_ratings: bool,
+    pub target: NexStruct<DataStoreRatingTarget>,
+    pub param: NexStruct<DataStoreRateObjectParam>,
+    pub fetch_ratings: bool,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct RateObjectResponse {
-    p_rating: DataStoreRatingInfo,
+    pub p_rating: NexStruct<DataStoreRatingInfo>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStoreRatingInfoWithSlot {
-    slot: i8,
-    rating: DataStoreRatingInfo,
+    pub slot: i8,
+    pub rating: NexStruct<DataStoreRatingInfo>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStoreMetaInfo {
-    data_id: u64,
-    owner_id: u32,
-    size: u32,
-    name: NexString,
-    data_type: u16,
-    meta_binary: NexQBuffer,
-    permission: DataStorePermission,
-    del_permission: DataStorePermission,
-    created_time: DateTime,
-    updated_time: DateTime,
-    period: u16,
-    status: u8,
-    referred_cnt: u32,
-    refer_data_id: u32,
-    flag: u32,
-    referred_time: DateTime,
-    expire_time: DateTime,
-    tags: NexList<NexString>,
-    ratings: NexList<DataStoreRatingInfoWithSlot>,
+    pub data_id: u64,
+    pub owner_id: u32,
+    pub size: u32,
+    pub name: NexString,
+    pub data_type: u16,
+    pub meta_binary: NexQBuffer,
+    pub permission: NexStruct<DataStorePermission>,
+    pub del_permission: NexStruct<DataStorePermission>,
+    pub created_time: DateTime,
+    pub updated_time: DateTime,
+    pub period: u16,
+    pub status: u8,
+    pub referred_cnt: u32,
+    pub refer_data_id: u32,
+    pub flag: u32,
+    pub referred_time: DateTime,
+    pub expire_time: DateTime,
+    pub tags: NexList<NexString>,
+    pub ratings: NexList<NexStruct<DataStoreRatingInfoWithSlot>>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStoreRatingInfo {
-    total_value: i64,
-    count: u32,
-    initial_value: i64,
+    pub total_value: i64,
+    pub count: u32,
+    pub initial_value: i64,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStorePersistenceTarget {
-    owner_id: u32,
-    persistence_slot_id: u16,
+    pub owner_id: u32,
+    pub persistence_slot_id: u16,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStoreGetMetaParam {
-    data_id: u64,
-    persistence_target: DataStorePersistenceTarget,
-    result_option: u8,
-    access_password: u64,
+    pub data_id: u64,
+    pub persistence_target: DataStorePersistenceTarget,
+    pub result_option: u8,
+    pub access_password: u64,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStoreRatingTarget {
-    data_id: u64,
-    slot: i8,
+    pub data_id: u64,
+    pub slot: i8,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStoreRateObjectParam {
-    rating_value: i32,
-    access_password: u64,
+    pub rating_value: i32,
+    pub access_password: u64,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStoreRatingInitParam {
-    flag: u8,
-    internal_flag: u8,
-    lock_type: u8,
-    initial_value: i64,
-    range_min: i32,
-    range_max: i32,
-    period_hour: i8,
-    period_duration: i16,
+    pub flag: u8,
+    pub internal_flag: u8,
+    pub lock_type: u8,
+    pub initial_value: i64,
+    pub range_min: i32,
+    pub range_max: i32,
+    pub period_hour: i8,
+    pub period_duration: i16,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStorePermission {
-    permission: u8,
-    recipient_ids: NexList<u32>,
+    pub permission: u8,
+    pub recipient_ids: NexList<u32>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStoreRatingInitParamWithSlot {
-    slot: i8,
-    param: DataStoreRatingInitParam,
+    pub slot: i8,
+    pub param: NexStruct<DataStoreRatingInitParam>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStorePersistenceInitParam {
-    persistence_slot_id: u16,
-    delete_last_object: bool,
+    pub persistence_slot_id: u16,
+    pub delete_last_object: bool,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStorePreparePostParam {
-    size: u32,
-    name: NexString,
-    data_type: u16,
-    meta_binary: NexQBuffer,
-    permission: DataStorePermission,
-    del_permission: DataStorePermission,
-    flag: u32,
-    period: u16,
-    refer_data_id: u32,
-    tags: NexList<NexString>,
-    rating_init_params: NexList<DataStoreRatingInitParamWithSlot>,
-    persistence_init_param: DataStorePersistenceInitParam,
-    extra_data: NexList<NexString>,
+    pub size: u32,
+    pub name: NexString,
+    pub data_type: u16,
+    pub meta_binary: NexQBuffer,
+    pub permission: NexStruct<DataStorePermission>,
+    pub del_permission: NexStruct<DataStorePermission>,
+    pub flag: u32,
+    pub period: u16,
+    pub refer_data_id: u32,
+    pub tags: NexList<NexString>,
+    pub rating_init_params: NexList<NexStruct<DataStoreRatingInitParamWithSlot>>,
+    pub persistence_init_param: NexStruct<DataStorePersistenceInitParam>,
+    pub extra_data: NexList<NexString>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct PostMetaBinaryRequest {
-    param: DataStorePreparePostParam,
+    pub param: NexStruct<DataStorePreparePostParam>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct PostMetaBinaryResponse {
-    data_id: u64,
+    pub data_id: u64,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStoreChangeMetaCompareParam {
-    comparison_flag: u32,
-    name: NexString,
-    permission: DataStorePermission,
-    del_permission: DataStorePermission,
-    period: u16,
-    meta_binary: NexQBuffer,
-    tags: NexList<NexString>,
-    referred_cnt: u32,
-    data_type: u16,
-    status: u8,
+    pub comparison_flag: u32,
+    pub name: NexString,
+    pub permission: NexStruct<DataStorePermission>,
+    pub del_permission: NexStruct<DataStorePermission>,
+    pub period: u16,
+    pub meta_binary: NexQBuffer,
+    pub tags: NexList<NexString>,
+    pub referred_cnt: u32,
+    pub data_type: u16,
+    pub status: u8,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DataStoreChangeMetaParam {
-    data_id: u64,
-    modifies_flag: u32,
-    name: NexString,
-    permission: DataStorePermission,
-    del_permission: DataStorePermission,
-    period: u16,
-    meta_binary: NexQBuffer,
-    tags: NexList<NexString>,
-    update_password: u64,
-    referred_cnt: u32,
-    data_type: u16,
-    status: u8,
-    compare_param: DataStoreChangeMetaCompareParam,
-    persistence_target: DataStorePersistenceTarget,
+    pub data_id: u64,
+    pub modifies_flag: u32,
+    pub name: NexString,
+    pub permission: NexStruct<DataStorePermission>,
+    pub del_permission: NexStruct<DataStorePermission>,
+    pub period: u16,
+    pub meta_binary: NexQBuffer,
+    pub tags: NexList<NexString>,
+    pub update_password: u64,
+    pub referred_cnt: u32,
+    pub data_type: u16,
+    pub status: u8,
+    pub compare_param: NexStruct<DataStoreChangeMetaCompareParam>,
+    pub persistence_target: NexStruct<DataStorePersistenceTarget>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct ChangeMetasRequest {
-    data_ids: NexList<u64>,
-    params: NexList<DataStoreChangeMetaParam>,
-    transactional: bool,
+    pub data_ids: NexList<u64>,
+    pub params: NexList<NexStruct<DataStoreChangeMetaParam>>,
+    pub transactional: bool,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct ChangeMetasResponse {
-    p_results: NexList<ResultCode>,
+    pub p_results: NexList<ResultCode>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationRecordKey {
-    data_id: u64,
-    password: u64,
+    pub data_id: u64,
+    pub password: u64,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct PrepareUploadPokemonResponse {
-    p_record_key: GlobalTradeStationRecordKey,
+    pub p_record_key: NexStruct<GlobalTradeStationRecordKey>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationUploadPokemonParam {
-    prepare_upload_key: GlobalTradeStationRecordKey,
-    period: u16,
-    index_data: NexQBuffer,
-    pokemon_data: NexQBuffer,
-    signature: NexQBuffer,
+    pub prepare_upload_key: NexStruct<GlobalTradeStationRecordKey>,
+    pub period: u16,
+    pub index_data: NexQBuffer,
+    pub pokemon_data: NexQBuffer,
+    pub signature: NexQBuffer,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct UploadPokemonRequest {
-    param: GlobalTradeStationUploadPokemonParam,
+    pub param: NexStruct<GlobalTradeStationUploadPokemonParam>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationTradeKey {
-    data_id: u64,
-    version: u32,
+    pub data_id: u64,
+    pub version: u32,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationPrepareTradePokemonParam {
-    trade_key: GlobalTradeStationTradeKey,
-    prepare_upload_key: GlobalTradeStationRecordKey,
+    pub trade_key: NexStruct<GlobalTradeStationTradeKey>,
+    pub prepare_upload_key: NexStruct<GlobalTradeStationRecordKey>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct PrepareTradePokemonRequest {
-    param: GlobalTradeStationPrepareTradePokemonParam,
+    pub param: NexStruct<GlobalTradeStationPrepareTradePokemonParam>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct PrepareTradePokemonResponse {
-    p_result: GlobalTradeStationPrepareTradePokemonResult,
+    pub p_result: NexStruct<GlobalTradeStationPrepareTradePokemonResult>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationDownloadPokemonResult {
-    data_id: u64,
-    index_data: NexQBuffer,
-    pokemon_data: NexQBuffer,
+    pub data_id: u64,
+    pub index_data: NexQBuffer,
+    pub pokemon_data: NexQBuffer,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationPrepareTradePokemonResult {
-    result: GlobalTradeStationDownloadPokemonResult,
-    prepare_trade_key: GlobalTradeStationRecordKey,
+    pub result: NexStruct<GlobalTradeStationDownloadPokemonResult>,
+    pub prepare_trade_key: NexStruct<GlobalTradeStationRecordKey>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationTradePokemonParam {
-    trade_key: GlobalTradeStationTradeKey,
-    prepare_trade_key: GlobalTradeStationRecordKey,
-    prepare_upload_key: GlobalTradeStationRecordKey,
-    period: u16,
-    index_data: NexQBuffer,
-    pokemon_data: NexQBuffer,
-    signature: NexQBuffer,
-    need_data: bool,
+    pub trade_key: NexStruct<GlobalTradeStationTradeKey>,
+    pub prepare_trade_key: NexStruct<GlobalTradeStationRecordKey>,
+    pub prepare_upload_key: NexStruct<GlobalTradeStationRecordKey>,
+    pub period: u16,
+    pub index_data: NexQBuffer,
+    pub pokemon_data: NexQBuffer,
+    pub signature: NexQBuffer,
+    pub need_data: bool,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct TradePokemonRequest {
-    param: GlobalTradeStationTradePokemonParam,
+    pub param: NexStruct<GlobalTradeStationTradePokemonParam>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct TradePokemonResponse {
-    p_result: GlobalTradeStationTradePokemonResult,
+    pub p_result: NexStruct<GlobalTradeStationTradePokemonResult>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationTradePokemonResult {
-    result: GlobalTradeStationDownloadPokemonResult,
-    my_data_id: u64,
+    pub result: NexStruct<GlobalTradeStationDownloadPokemonResult>,
+    pub my_data_id: u64,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationDownloadOtherPokemonParam {
-    prepare_upload_key: GlobalTradeStationRecordKey,
+    pub prepare_upload_key: NexStruct<GlobalTradeStationRecordKey>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DownloadOtherPokemonRequest {
-    param: GlobalTradeStationDownloadOtherPokemonParam,
+    pub param: NexStruct<GlobalTradeStationDownloadOtherPokemonParam>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DownloadOtherPokemonResponse {
-    p_result: GlobalTradeStationTradePokemonResult,
+    pub p_result: NexStruct<GlobalTradeStationTradePokemonResult>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationDownloadMyPokemonParam {
-    prepare_upload_key: GlobalTradeStationRecordKey,
+    pub prepare_upload_key: NexStruct<GlobalTradeStationRecordKey>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationDownloadMyPokemonResult {
-    result: GlobalTradeStationDownloadPokemonResult,
-    is_traded: bool,
+    pub result: NexStruct<GlobalTradeStationDownloadPokemonResult>,
+    pub is_traded: bool,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DownloadMyPokemonRequest {
-    param: GlobalTradeStationDownloadMyPokemonParam,
+    pub param: NexStruct<GlobalTradeStationDownloadMyPokemonParam>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DownloadMyPokemonResponse {
-    p_result: GlobalTradeStationDownloadMyPokemonResult,
+    pub p_result: NexStruct<GlobalTradeStationDownloadMyPokemonResult>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationDeletePokemonParam {
-    prepare_upload_key: GlobalTradeStationRecordKey,
-    delete_flag: u8,
+    pub prepare_upload_key: NexStruct<GlobalTradeStationRecordKey>,
+    pub delete_flag: u8,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct DeletePokemonRequest {
-    param: GlobalTradeStationDeletePokemonParam,
+    pub param: NexStruct<GlobalTradeStationDeletePokemonParam>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationSearchPokemonParam {
-    prepare_upload_key: GlobalTradeStationRecordKey,
-    conditions: NexList<u32>,
-    result_order_column: u8,
-    result_order: u8,
-    uploaded_after: DateTime,
-    uploaded_before: DateTime,
-    result_range: ResultRange,
+    pub prepare_upload_key: NexStruct<GlobalTradeStationRecordKey>,
+    pub conditions: NexList<u32>,
+    pub result_order_column: u8,
+    pub result_order: u8,
+    pub uploaded_after: DateTime,
+    pub uploaded_before: DateTime,
+    pub result_range: NexStruct<ResultRange>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct SearchPokemonV2Request {
-    param: GlobalTradeStationSearchPokemonParam,
+    pub param: NexStruct<GlobalTradeStationSearchPokemonParam>,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationData {
-    data_id: u64,
-    owner_id: u32,
-    updated_time: DateTime,
-    index_data: NexQBuffer,
-    version: u32,
+    pub data_id: u64,
+    pub owner_id: u32,
+    pub updated_time: DateTime,
+    pub index_data: NexQBuffer,
+    pub version: u32,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct GlobalTradeStationSearchPokemonResult {
-    total_count: u32,
-    result: NexList<GlobalTradeStationData>,
-    total_count_type: u8,
+    pub total_count: u32,
+    pub result: NexList<NexStruct<GlobalTradeStationData>>,
+    pub total_count_type: u8,
 }
 
 #[derive(Debug, EndianRead, EndianWrite)]
 pub struct SearchPokemonV2Response {
-    p_result: GlobalTradeStationSearchPokemonResult,
+    pub p_result: NexStruct<GlobalTradeStationSearchPokemonResult>,
 }
