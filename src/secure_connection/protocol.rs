@@ -235,7 +235,7 @@ pub trait SecureConnectionProtocol: Server {
     async fn handle_test_connectivity(
         &self,
         client: &mut ClientConnection,
-        packet: &PacketV1,
+        _packet: &PacketV1,
     ) -> Result<(), &'static str> {
         self.test_connectivity(client).await
     }
